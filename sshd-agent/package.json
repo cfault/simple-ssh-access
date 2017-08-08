@@ -1,0 +1,18 @@
+{
+  "name": "sshd-agent",
+  "version": "1.0.0",
+  "description": "A simple sshd that connects to a microservice for its user configuration, and additionally who can access",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "keywords": [
+    "sshd",
+    "authorization"
+  ],
+  "author": "Continuity Fault",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "3.5.0"
+  }
+}
