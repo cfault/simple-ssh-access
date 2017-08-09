@@ -3,7 +3,6 @@
 // internal modules
 
 const net = require('net'),
-  os = require('os'),
   http = require('http'),
   fs = require('fs'),
   url = require('url'),
@@ -12,15 +11,14 @@ const net = require('net'),
 // external modules
 
 const Promise = require('bluebird');
+const request = Promise.promisify(require("request"));
+Promise.promisifyAll(request, {multiArgs: true});
 
 // helpers
 
 const readDir = Promise.promisify(fs.readdir);
 const readFile = Promise.promisify(fs.readFile);
-const getHttp = Promise.promisify(http.get); 
-const getHTTP = (opts) => {
-  return new Promise((resolve, reject) => { resolve(['a','b','c']); })
-}
+
 const getFile = (file, mode) => {
   return readFile(file, mode || 'utf8');
 }
@@ -29,7 +27,7 @@ const getFile = (file, mode) => {
 
 const APPROVER_SERVER = {
   source: process.env['APPROVER_SERVER'] || 'default',
-  value: process.env['APPROVER_SERVER'] || 'localhost:3001'
+  value: process.env['APPROVER_SERVER'] || 'http://localhost:3001'
 }
 
 const APPROVER_CERTS = { 
@@ -44,8 +42,9 @@ const AUTHORITY = {
 
 const SERVER_ROLE = {
   source: process.env['SERVER_ROLE'] || 'default',
-  value: process.env['SERVER_ROLE'] || 'server-aabbcc',
+  value: process.env['SERVER_ROLE'] || 'server'
 }
+SERVER_ROLE.value = SERVER_ROLE.value.replace(/-.*/,'')
 const USER_PIPELINE = {
 }
 // application stages
@@ -53,16 +52,14 @@ const USER_PIPELINE = {
 const loadAndVerifyApprovers = function* () {
   const approvers = yield readDir(APPROVER_CERTS.value);
   return yield Promise.all(approvers.map((approver) => {
-    // todo - check that approver is issued by AUTHORITY
+    // TODO - check that approver is issued by AUTHORITY
     return getFile(`./${APPROVER_CERTS.value}/${approver}`);
   }));
 }
 const loadAndAssertUsers = function* () {
-  const users = yield getHTTP({
-    url: `${APPROVER_SERVER.value}/users/${SERVER_ROLE}.replace(/-.*/,'')}`
-  });
-  return yield Promise.all(users.map((user) => {
-    // todo - assert user for logs - set permissions based on claims
+  const users = yield request(`${APPROVER_SERVER.value}/users/${SERVER_ROLE.value}`);
+  return yield Promise.all(JSON.parse(users.body).map((user) => {
+    // TODO - assert user for logs - set permissions based on claims
     return user;
   }));
 }
@@ -70,20 +67,21 @@ const loadAndAssertUsers = function* () {
 const start = function* () {
   let self = this;
   let workers = this.users.map((user) => {
-    return new Promise((resolve, reject) => {
-      const server = new net.Server();
-      server.listen(`/tmp/${user}/.ssh/authorized_keys`);
-      server.on('connection', function (connection) {
-        getHTTP({
-          url: `${APPROVER_SERVER.value}/${SERVER_ROLE}.replace(/-.*/,'')}/${user}`
-        }).then((result) => {
-          // todo connection.write (/ authorized keys / 
-          connection.write(result[self.users.indexOf(user)])
-          resolve(result);
-        })
+    let worker = {
+      server : new net.Server({
+        allowHalfOpen: true
       })
-    })
-
+    }
+    worker.server.on('connection', function (connection) {
+      // TODO - have to go back to promises - as cannot easily promisify an event; FIX THIS NEXT!
+      request(`${APPROVER_SERVER.value}/role/${SERVER_ROLE.value}/${user}`)
+        .then((result) => {
+          connection.write(result.body);
+          connection.end();
+        });
+    });
+    worker.server.listen(`/tmp/${user}/.ssh/authorized_keys`);
+    return worker;
   })
 }
 

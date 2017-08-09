@@ -1,0 +1,16 @@
+{
+  "name": "access-server",
+  "version": "1.0.0",
+  "description": "Provides a repository of authorized_keys for sshd-agent",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Continuity Fault",
+  "license": "ISC",
+  "dependencies": {
+    "js-yaml": "^3.9.1",
+    "restify": "^5.0.1",
+    "sway": "^1.0.0"
+  }
+}

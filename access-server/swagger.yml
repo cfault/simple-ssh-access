@@ -1,0 +1,56 @@
+swagger: "2.0"
+info:
+  description: "This server is to support sshd authorized_keys files to be resolved"
+  version: "1.0.0"
+  title: "Access Service"
+  contact:
+    email: "jamie.rushmer@yahoo.co.uk"
+host: "access-server.inphase.media"
+basePath: "/"
+schemes:
+- "http"
+paths:
+  /role/{role}/{user}:
+    get:
+      tags:
+      - "role"
+      summary: "Retrieve keys for user on role"
+      description: ""
+      operationId: getRole
+      x-controller: get
+      produces:
+      - "application/json"
+      parameters:
+      - in: path
+        name: role
+        description: "Current server role"
+        required: true
+        type: string
+      - in: path
+        name: user
+        description: "User"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "Invalid input"
+  /users/{role}:
+    get:
+      tags:
+      - "role"
+      summary: "Retrieve keys for user on role"
+      description: ""
+      operationId: getUsers
+      x-controller: get
+      produces:
+      - "application/json"
+      parameters:
+      - in: path
+        name: role
+        description: "Current server role"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "Invalid input"
+    
